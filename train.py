@@ -14,8 +14,10 @@ import os
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from torchtext.data import Field, Dataset, BucketIterator
-from torchtext.datasets import TranslationDataset
+# from torchtext.data import Field, Dataset, BucketIterator
+from torchtext.legacy.data import Field, Dataset, BucketIterator
+# from torchtext.datasets import TranslationDataset
+from torchtext.legacy.datasets import TranslationDataset
 
 import transformer.Constants as Constants
 from transformer.Models import Transformer
@@ -203,7 +205,7 @@ def train(model, training_data, validation_data, optimizer, device, opt):
 def main():
     ''' 
     Usage:
-    python train.py -data_pkl m30k_deen_shr.pkl -log m30k_deen_shr -embs_share_weight -proj_share_weight -label_smoothing -output_dir output -b 256 -warmup 128000
+    python train.py -data_pkl m30k_deen_shr.pkl -embs_share_weight -proj_share_weight -label_smoothing -output_dir output -epoch 10 -b 256 -d_model 512 -d_inner_hid 2048 -d_k 64 -d_v 64 -n_head 8 -n_layers 6 -lr_mul 2.0 -dropout 0.1 -warmup 4000 -no_cuda
     '''
 
     parser = argparse.ArgumentParser()
