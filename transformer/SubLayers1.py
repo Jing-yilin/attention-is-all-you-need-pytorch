@@ -7,8 +7,9 @@ from transformer.Modules import ScaledDotProductAttention
 
 __author__ = "Yu-Hsiang Huang"
 
+
 class MultiHeadAttention(nn.Module):
-    ''' Multi-Head Attention module '''
+    ''' Multi-Head Attention module with adaptive weights '''
 
     def __init__(self, n_head, d_model, d_k, d_v, dropout=0.1):
         super().__init__()
@@ -27,6 +28,10 @@ class MultiHeadAttention(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.layer_norm = nn.LayerNorm(d_model, eps=1e-6)
 
+        # 引入每个头的重要性系数和难度系数
+        self.importance_coeffs = nn.Parameter(torch.rand(n_head))
+        self.difficulty_coeffs = nn.Parameter(torch.tensor([(d_k * d_v) / 10e6 for _ in range(n_head)]), requires_grad=False)
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, q, k, v, mask=None):
 
@@ -49,6 +54,13 @@ class MultiHeadAttention(nn.Module):
 
         q, attn = self.attention(q, k, v, mask=mask)
 
+        # 自适应权重计算
+        exp_importances = self.sigmoid(self.importance_coeffs) * self.difficulty_coeffs
+        weights = exp_importances / exp_importances.sum()
+
+        # Apply adaptive weights to each head
+        q = q * weights.unsqueeze(-1).unsqueeze(-1)  # 扩展维度以适应 q 的形状
+
         # Transpose to move the head dimension back: b x lq x n x dv
         # Combine the last two dimensions to concatenate all the heads together: b x lq x (n*dv)
         q = q.transpose(1, 2).contiguous().view(sz_b, len_q, -1)
@@ -58,7 +70,6 @@ class MultiHeadAttention(nn.Module):
         q = self.layer_norm(q)
 
         return q, attn
-
 
 class PositionwiseFeedForward(nn.Module):
     ''' A two-feed-forward-layer module '''
